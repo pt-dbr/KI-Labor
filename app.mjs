@@ -100,17 +100,28 @@ function unsupervised() {
     panel(4, 'Über Ergebnisse nachdenken', '<p>Schau dir die Fotos in den Gruppen an. Überlege, ob etwa Farben, Formen oder Hintergründe eine Rolle gespielt haben könnten. Die Rechenmethode liefert Gruppen und Abstände zwischen Zahlenwerten.</p>');
 }
 
+function modeSelector() {
+  return '<nav class="mode-selector" aria-label="Lernmodus wechseln">' +
+    [['a', 'Überwachtes Lernen'], ['b', 'Unüberwachtes Lernen']].map(([key, label]) =>
+      '<button type="button" data-view="' + key + '" aria-label="Modus ' + key.toUpperCase() +
+      ': ' + label + '"' + (view === key ? ' aria-current="page"' : '') + '>' +
+      key.toUpperCase() + '</button>').join('') + '</nav>';
+}
+
 function render() {
   const faq = '<section><h2>Wissen zum Nachschlagen</h2>' + info.map(([q, a]) =>
     '<details><summary>' + q + '</summary><p>' + a + '</p></details>').join('') + '</section>';
   const content = view === 'home'
     ? '<section class="hero"><h1>KI-Labor</h1><strong>Bring einer KI das Sehen bei!</strong><p>Trainiere deine eigene KI und entdecke, wie Maschinen lernen.</p></section>' +
-      '<div class="grid"><button type="button" class="mode" data-view="a"><span class="badge">A</span><b>Überwachtes Lernen</b>' +
+      '<section class="faceplate" aria-label="Lernmodus auswählen"><div class="grid mode-grid">' +
+      '<button type="button" class="mode mode-a" data-view="a"><span class="key-top" aria-hidden="true"><span class="key-letter">A</span><span class="key-icon photo-icon">▧</span></span><b>Überwachtes Lernen</b>' +
       'Ich zeige der KI, was richtig ist.<small>Gib deinen Fotos Kategorien und teste die KI mit einem neuen Bild.</small></button>' +
-      '<button type="button" class="mode" data-view="b"><span class="badge">B</span><b>Unüberwachtes Lernen</b>' +
-      'Die KI entdeckt Gemeinsamkeiten selbst.<small>Sammle Fotos und vergleiche, wie die KI sie gruppiert.</small></button></div>'
-    : '<div class="mode-head"><button data-view="home">Zur Startseite</button><h1>' +
-      (view === 'a' ? 'A · Überwachtes Lernen' : 'B · Unüberwachtes Lernen') + '</h1></div>' +
+      '<button type="button" class="mode mode-b" data-view="b"><span class="key-top" aria-hidden="true"><span class="key-letter">B</span><span class="key-icon cluster-icon"><i></i><i></i><i></i></span></span><b>Unüberwachtes Lernen</b>' +
+      'Die KI entdeckt Gemeinsamkeiten selbst.<small>Sammle Fotos und vergleiche, wie die KI sie gruppiert.</small></button></div>' +
+      modeSelector() + '</section>'
+    : '<div class="mode-head"><div class="mode-tools"><button type="button" data-view="home">Zur Startseite</button>' +
+      modeSelector() + '</div><h1>' + (view === 'a' ? 'A · Überwachtes Lernen' : 'B · Unüberwachtes Lernen') +
+      '</h1></div>' +
       '<div class="feedback"><p id="working" class="status" role="status">' + escape(state.messages[view]) + '</p><progress id="progress" aria-label="Fortschritt der Berechnung" hidden></progress></div>' +
       '<fieldset id="workspace">' + (view === 'a' ? supervised() : unsupervised()) + '</fieldset>' +
       '<section class="panel"><h2>Forscherauftrag</h2><ol>' + experiments[view].map(task => '<li>' + task + '</li>').join('') + '</ol></section>';
@@ -119,7 +130,7 @@ function render() {
 }
 
 function go(destination) {
-  if (operation || resetting) return;
+  if (operation || resetting || view === destination && destination !== 'home') return;
   view = destination;
   render();
   const heading = main.querySelector('h1');
@@ -144,7 +155,7 @@ function run(task) {
   const {signal} = controller;
   $('workspace').disabled = true;
   $('home').disabled = true;
-  main.querySelector('[data-view="home"]').disabled = true;
+  main.querySelectorAll('button[data-view]').forEach(button => { button.disabled = true; });
   operation = (async () => {
     try { state.messages[view] = await task(signal); }
     catch (error) {
