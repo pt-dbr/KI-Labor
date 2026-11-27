@@ -1,3 +1,4 @@
+import {mountExpertTree, resetExpertTree} from './expert.mjs';
 import {pause, train, predict, cluster} from './ml.mjs';
 import {thumbnail, extract, releaseEncoder} from './images.mjs';
 
@@ -102,7 +103,7 @@ function unsupervised() {
 
 function modeSelector() {
   return '<nav class="mode-selector" aria-label="Lernmodus wechseln">' +
-    [['a', 'Überwachtes Lernen'], ['b', 'Unüberwachtes Lernen']].map(([key, label]) =>
+    [['a', 'Überwachtes Lernen'], ['b', 'Unüberwachtes Lernen'], ['c', 'Expertensystem – Klasse 8']].map(([key, label]) =>
       '<button type="button" data-view="' + key + '" aria-label="Modus ' + key.toUpperCase() +
       ': ' + label + '"' + (view === key ? ' aria-current="page"' : '') + '>' +
       key.toUpperCase() + '</button>').join('') + '</nav>';
@@ -112,13 +113,27 @@ function render() {
   const faq = '<section><h2>Wissen zum Nachschlagen</h2>' + info.map(([q, a]) =>
     '<details><summary>' + q + '</summary><p>' + a + '</p></details>').join('') + '</section>';
   const content = view === 'home'
-    ? '<section class="hero"><h1>KI-Labor</h1><strong>Bring einer KI das Sehen bei!</strong><p>Trainiere deine eigene KI und entdecke, wie Maschinen lernen.</p></section>' +
+    ? '<section class="hero"><h1>KI-Labor</h1><strong>Bring einer KI das Sehen bei!</strong><p>Trainiere deine eigene KI und entdecke, wie Maschinen lernen. Baue außerdem ein Expertensystem mit eigenen Regeln.</p></section>' +
       '<section class="faceplate" aria-label="Lernmodus auswählen"><div class="grid mode-grid">' +
       '<button type="button" class="mode mode-a" data-view="a"><span class="key-top" aria-hidden="true"><span class="key-letter">A</span><span class="key-icon photo-icon">▧</span></span><b>Überwachtes Lernen</b>' +
       'Ich zeige der KI, was richtig ist.<small>Gib deinen Fotos Kategorien und teste die KI mit einem neuen Bild.</small></button>' +
       '<button type="button" class="mode mode-b" data-view="b"><span class="key-top" aria-hidden="true"><span class="key-letter">B</span><span class="key-icon cluster-icon"><i></i><i></i><i></i></span></span><b>Unüberwachtes Lernen</b>' +
-      'Die KI entdeckt Gemeinsamkeiten selbst.<small>Sammle Fotos und vergleiche, wie die KI sie gruppiert.</small></button></div>' +
+      'Die KI entdeckt Gemeinsamkeiten selbst.<small>Sammle Fotos und vergleiche, wie die KI sie gruppiert.</small></button>' +
+      '<button type="button" class="mode mode-c" data-view="c"><span class="key-top" aria-hidden="true"><span class="key-letter">C</span><span class="key-icon">⌘</span></span><b>Expertensystem</b>Klasse 8<small>Baue einen Entscheidungsbaum und teste deine Ja-Nein-Regeln.</small></button></div>' +
       modeSelector() + '</section>'
+    : view === 'c'
+    ? '<div class="mode-head"><div class="mode-tools"><button type="button" data-view="home">Zur Startseite</button>' +
+      modeSelector() + '</div><h1>C · Expertensystem</h1><p>Klasse 8 · Entscheidungsbäume bauen und testen</p></div>' +
+      '<section id="expert" class="expert">' + `<nav class="controls" aria-label="Modus">
+<button id="edit-mode" aria-pressed="true">Baum bauen</button>
+<button id="run-mode" aria-pressed="false">Baum testen</button>
+</nav>
+<section id="editor">
+  <div class="panel"><h2>Dein Baum</h2><p>Wähle einen Knoten oder ein freies Zweigende.</p><div class="tree" id="tree"></div></div>
+  <div class="panel" id="properties"></div>
+</section>
+<section class="panel" id="runner" hidden aria-label="Baum testen"></section>
+<p id="expert-status" role="status"></p>` + '</section>'
     : '<div class="mode-head"><div class="mode-tools"><button type="button" data-view="home">Zur Startseite</button>' +
       modeSelector() + '</div><h1>' + (view === 'a' ? 'A · Überwachtes Lernen' : 'B · Unüberwachtes Lernen') +
       '</h1></div>' +
@@ -127,6 +142,7 @@ function render() {
       '<section class="panel"><h2>Forscherauftrag</h2><ol>' + experiments[view].map(task => '<li>' + task + '</li>').join('') + '</ol></section>';
   main.innerHTML = content + (view === 'home' && state.messages.home ?
     '<p class="status" role="status">' + escape(state.messages.home) + '</p>' : '') + faq;
+  if (view === 'c') mountExpertTree($('expert'));
 }
 
 function go(destination) {
@@ -299,7 +315,7 @@ main.addEventListener('change', event => {
     invalidateB();
     render();
   }
-  if (input.type === 'file') {
+  if (input.type === 'file' && input.dataset.target) {
     const files = Array.from(input.files);
     input.value = '';
     if (files.length) importImages(files, input.dataset.target);
@@ -353,6 +369,7 @@ $('delete').onclick = async () => {
     if (image) URL.revokeObjectURL(image.url);
   }
   releaseEncoder();
+  resetExpertTree();
   state = empty();
   controller = undefined;
   nextImage = 0;

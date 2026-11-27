@@ -148,3 +148,42 @@ button.danger:hover { background: #7b2a33; }
 .feedback { background: #e3ece9; border-radius: 0 0 .6rem .6rem; }
 .feedback:has(.status:not(:empty)) { padding: .45rem .75rem; }
 @media (max-width: 480px) { .mode.mode-a, .mode.mode-b { min-height: 185px; } }
+
+:root { --lab-header-height: 76px; scroll-padding-top: calc(var(--lab-header-height) + .5rem); }
+.top { position: sticky; top: 0; z-index: 3; }
+.top-inner { min-height: var(--lab-header-height); }
+.feedback { top: var(--lab-header-height); }
+.if-pe-logo { display: block; width: clamp(4rem, 12vw, 6.5rem); height: 3rem; object-fit: contain; }
+.mode.mode-c { background: var(--grain), linear-gradient(145deg,#f4f9f6,#c6dcd5); color: #122a3c; border: 2px solid #1a454b; box-shadow: 0 5px #153f45; }
+.mode.mode-c:hover { filter: brightness(1.05); }
+.expert { margin-top: 1rem; }
+.expert .panel { margin-top: 1rem; }
+.expert .controls button[aria-pressed="true"] { color: white; background: var(--deep); }
+.expert .edge { min-width: 0; }
+.expert .controls, .expert .choices{display:flex;flex-wrap:wrap;gap:.55rem}
+.expert .tree{overflow:auto;padding:.5rem;max-height:65vh}
+.expert .branch-node{display:grid;justify-items:center;width:max-content;min-width:100%;align-content:start}
+.expert .children{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding-top:1rem}
+.expert .edge{position:relative;display:grid;justify-items:center;align-content:start;gap:.35rem;border-top:2px solid var(--line)}
+.expert .edge>span{color:var(--teal);font-weight:800}
+.expert .card{width:11rem;min-height:3.5rem;overflow-wrap:anywhere}
+.expert .card small{display:block;font-weight:600}
+.expert .root { background: #efd8d5; }
+.expert .question { background: #f4eac9; }
+.expert .leaf { background: #d5e9e1; }
+.expert .card[aria-current=true]{outline:3px solid var(--teal);outline-offset:2px}
+.expert .field{display:grid;gap:.35rem;max-width:38rem;margin-bottom:.75rem;font-weight:700}
+.expert .gallery{display:flex;gap:.65rem;flex-wrap:wrap;margin:1rem 0}
+.expert .gallery img, .expert .photo{width:min(9rem,100%);aspect-ratio:4/3;object-fit:contain;background:#fff;border-radius:.55rem;border:1px solid var(--line)}
+.expert .gallery button{padding:.25rem;display:grid;justify-items:center}
+.expert [hidden]{display:none!important}
+@media (max-width: 620px) {
+  :root { --lab-header-height: 68px; }
+  .top-inner { flex-wrap: nowrap; gap: .35rem; }
+  .top-inner .school { display: none; }
+  .top-inner .brand, .top-inner .reset { padding-inline: .5rem; }
+  .top-inner .brand { white-space: nowrap; }
+  .top-inner .brand-mark { display: none; }
+  .top-inner .reset { font-size: .79rem; line-height: 1.2; }
+}
+
