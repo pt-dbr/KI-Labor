@@ -1,4 +1,4 @@
-import {mountExpertTree, resetExpertTree} from './expert.mjs';
+import {mountExpertTree, resetExpertTree} from './expert.mjs?v=baumzoom-1';
 import {pause, train, predict, cluster} from './ml.mjs';
 import {thumbnail, extract, releaseEncoder} from './images.mjs';
 
@@ -12,6 +12,7 @@ const empty = () => ({
 });
 let state = empty();
 let view = 'home';
+let disposeExpert;
 let operation;
 let controller;
 let nextImage = 0;
@@ -110,6 +111,8 @@ function modeSelector() {
 }
 
 function render() {
+  disposeExpert?.();
+  disposeExpert = undefined;
   const faq = '<section><h2>Wissen zum Nachschlagen</h2>' + info.map(([q, a]) =>
     '<details><summary>' + q + '</summary><p>' + a + '</p></details>').join('') + '</section>';
   const content = view === 'home'
@@ -142,7 +145,7 @@ function render() {
       '<section class="panel"><h2>Forscherauftrag</h2><ol>' + experiments[view].map(task => '<li>' + task + '</li>').join('') + '</ol></section>';
   main.innerHTML = content + (view === 'home' && state.messages.home ?
     '<p class="status" role="status">' + escape(state.messages.home) + '</p>' : '') + faq;
-  if (view === 'c') mountExpertTree($('expert'));
+  if (view === 'c') disposeExpert = mountExpertTree($('expert'));
 }
 
 function go(destination) {
@@ -383,5 +386,6 @@ $('delete').onclick = async () => {
 };
 dialog.addEventListener('cancel', event => { if (resetting) event.preventDefault(); });
 render();
+
 
 

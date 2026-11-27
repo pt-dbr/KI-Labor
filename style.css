@@ -161,7 +161,14 @@ button.danger:hover { background: #7b2a33; }
 .expert .controls button[aria-pressed="true"] { color: white; background: var(--deep); }
 .expert .edge { min-width: 0; }
 .expert .controls, .expert .choices{display:flex;flex-wrap:wrap;gap:.55rem}
-.expert .tree{overflow:auto;padding:.5rem;max-height:65vh}
+.expert .tree{overflow:auto;height:clamp(15rem,56vh,36rem);position:relative;touch-action:none;overscroll-behavior:contain;cursor:grab;border:1px solid var(--line);border-radius:.7rem;background:#f3f8f7}
+.expert .tree:active{cursor:grabbing}
+.expert .tree-frame{position:relative;overflow:hidden}
+.expert .tree-content{position:absolute;top:12px;width:max-content;transform-origin:top left}
+.expert .tree-toolbar{display:flex;gap:.55rem;flex-wrap:wrap;align-items:center;margin:.6rem 0}
+.expert .tree-toolbar output{min-width:3.2rem;text-align:center;font-variant-numeric:tabular-nums}
+.expert .tree-toolbar button{min-width:44px}
+.expert .tree-hint{font-size:.9rem;margin:.45rem 0;color:#304f50}
 .expert .branch-node{display:grid;justify-items:center;width:max-content;min-width:100%;align-content:start}
 .expert .children{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding-top:1rem}
 .expert .edge{position:relative;display:grid;justify-items:center;align-content:start;gap:.35rem;border-top:2px solid var(--line)}
@@ -186,4 +193,5 @@ button.danger:hover { background: #7b2a33; }
   .top-inner .brand-mark { display: none; }
   .top-inner .reset { font-size: .79rem; line-height: 1.2; }
 }
+
 

@@ -36,9 +36,144 @@ function inspect(node, path = [], result = {missing: null, photos: []}) {
   return result;
 }
 
+function treeViewport(tree) {
+  const toolbar = el('div', '', 'tree-toolbar');
+  const percentage = el('output', '100 %');
+  percentage.setAttribute('aria-label', 'Zoomstufe');
+  percentage.setAttribute('aria-live', 'off');
+  const frame = el('div', '', 'tree-frame');
+  const content = el('div', '', 'tree-content');
+  frame.append(content);
+  tree.append(frame);
+  tree.tabIndex = 0;
+  tree.setAttribute('role', 'region');
+  tree.setAttribute('aria-label', 'Verschiebbare Baumansicht');
+
+  let scale = 1;
+  let fitMode = false;
+  let gesture;
+  let suppressClickUntil = 0;
+  const pointers = new Map();
+  const inset = 12;
+  const floor = () => Math.min(0.1, fitScale());
+  const width = () => content.offsetWidth;
+  const height = () => content.offsetHeight;
+
+  function fitScale() {
+    return Math.min(1, Math.max(1, tree.clientWidth - inset * 2) / Math.max(1, width()),
+      Math.max(1, tree.clientHeight - inset * 2) / Math.max(1, height()));
+  }
+
+  function layout() {
+    const scaledWidth = Math.ceil(width() * scale);
+    const scaledHeight = Math.ceil(height() * scale);
+    frame.style.width = Math.max(tree.clientWidth, scaledWidth + inset * 2) + 'px';
+    frame.style.height = Math.max(tree.clientHeight, scaledHeight + inset * 2) + 'px';
+    content.style.left = Math.max(inset, (tree.clientWidth - scaledWidth) / 2) + 'px';
+    content.style.transform = 'scale(' + scale + ')';
+    percentage.textContent = Math.max(1, Math.round(scale * 100)) + ' %';
+    smaller.disabled = scale <= floor() + 1e-6;
+    larger.disabled = scale >= 2;
+  }
+
+  function fit() {
+    if (!tree.clientWidth) return;
+    fitMode = true;
+    scale = fitScale();
+    layout();
+    tree.scrollTo(0, 0);
+  }
+
+  function zoom(next, x = tree.clientWidth / 2, y = tree.clientHeight / 2, oldX = x, oldY = y) {
+    fitMode = false;
+    const anchorX = (tree.scrollLeft + oldX - content.offsetLeft) / scale;
+    const anchorY = (tree.scrollTop + oldY - inset) / scale;
+    scale = Math.min(2, Math.max(floor(), next));
+    layout();
+    tree.scrollTo(anchorX * scale + content.offsetLeft - x, anchorY * scale + inset - y);
+  }
+
+  const smaller = button('−', () => zoom(scale / 1.25));
+  const larger = button('+', () => zoom(scale * 1.25));
+  smaller.setAttribute('aria-label', 'Baum verkleinern');
+  larger.setAttribute('aria-label', 'Baum vergrößern');
+  toolbar.append(button('Ganzen Baum anzeigen', fit), smaller, percentage, larger);
+  const hint = el('p', 'Ziehe den Baum zum Verschieben. Zoome mit zwei Fingern oder mit + und −.', 'tree-hint');
+  tree.before(toolbar, hint);
+
+  function measureGesture() {
+    const [first, second] = pointers.values();
+    if (!first) return undefined;
+    if (!second) return {...first, distance: 0};
+    return {x: (first.x + second.x) / 2, y: (first.y + second.y) / 2,
+      distance: Math.max(1, Math.hypot(first.x - second.x, first.y - second.y))};
+  }
+  let moved = false;
+  tree.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    if (pointers.size === 0) {
+      moved = false;
+      suppressClickUntil = 0;
+    }
+    pointers.set(event.pointerId, {x:event.clientX, y:event.clientY});
+    gesture = measureGesture();
+    if (pointers.size >= 2) {
+      moved = true;
+      for (const id of pointers.keys()) tree.setPointerCapture(id);
+    }
+  });
+  tree.addEventListener('pointermove', event => {
+    if (!pointers.has(event.pointerId)) return;
+    pointers.set(event.pointerId, {x:event.clientX, y:event.clientY});
+    const next = measureGesture();
+    const dx = next.x - gesture.x;
+    const dy = next.y - gesture.y;
+    if (!moved && Math.hypot(dx,dy) < 5) return;
+    if (!moved) tree.setPointerCapture(event.pointerId);
+    moved = true;
+    if (next.distance) {
+      const bounds = tree.getBoundingClientRect();
+      zoom(scale * next.distance / gesture.distance, next.x - bounds.left, next.y - bounds.top,
+        gesture.x - bounds.left, gesture.y - bounds.top);
+    } else {
+      tree.scrollBy(-dx, -dy);
+    }
+    gesture = next;
+  });
+  function end(event) {
+    if (!pointers.delete(event.pointerId)) return;
+    if (moved) suppressClickUntil = performance.now() + 400;
+    gesture = measureGesture();
+  }
+  for (const name of ['pointerup','pointercancel','lostpointercapture']) tree.addEventListener(name,end);
+  tree.addEventListener('pointerleave', event => {
+    if (!tree.hasPointerCapture(event.pointerId)) end(event);
+  });
+  tree.addEventListener('click', event => {
+    if (event.detail && performance.now() < suppressClickUntil) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
+
+  function refresh() {
+    if (!tree.clientWidth) return;
+    if (fitMode) fit();
+    else layout();
+  }
+  const observer = new ResizeObserver(refresh);
+  observer.observe(tree);
+  return {
+    draw(node) {
+      content.replaceChildren(node);
+      refresh();
+    },
+    dispose() { observer.disconnect(); }
+  };
+}
 export function mountExpertTree(container) {
   const byId = id => container.querySelector('#' + id);
-  const tree = byId('tree');
+  const viewport = treeViewport(byId('tree'));
   const properties = byId('properties');
   const runner = byId('runner');
   const status = byId('expert-status');
@@ -70,7 +205,7 @@ export function mountExpertTree(container) {
       }
       return item;
     }
-    tree.replaceChildren(draw(root, []));
+    viewport.draw(draw(root, []));
   }
 
   function photo(src, alt = '', className = 'photo') {
@@ -203,4 +338,6 @@ export function mountExpertTree(container) {
   byId('edit-mode').addEventListener('click', () => setMode(false));
   byId('run-mode').addEventListener('click', () => setMode(true));
   renderEditor();
+  return viewport.dispose;
 }
+
